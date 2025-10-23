@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "VideoPoseDetection",
+			"path": "VideoPoseDetection"
+		}
+	],
+	"settings": {
+		"python-envs.defaultEnvManager": "ms-python.python:venv"
+	}
+}
