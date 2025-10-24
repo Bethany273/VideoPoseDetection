@@ -64,7 +64,7 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
 
                 cv2.putText(image, f"Angle: {angle_deg:.2f}deg",
                             (10, 30), cv2.FONT_HERSHEY_SIMPLEX,
-                            1, (255, 0, 0), 2, cv2.LINE_AA)
+                            1, (255, 255, 255), 2, cv2.LINE_AA)
 
             except Exception as e:
                 print(f"Error calculating angle: {str(e)}")
