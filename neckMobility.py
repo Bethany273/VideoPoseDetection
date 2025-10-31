@@ -40,9 +40,13 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 
                 # Get coordinates
                 right_ear = [landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].x,
-                             landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].y]
+                            landmarks[mp_pose.PoseLandmark.RIGHT_EAR.value].y]
                 left_ear = [landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].x,
                             landmarks[mp_pose.PoseLandmark.LEFT_EAR.value].y]
+                left_shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
+                                landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+                right_shoulder = [landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
+                                landmarks[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y]
 
                 height, width = image.shape[:2]
 
@@ -55,8 +59,15 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 dy = left_ear_pixel[1] - right_ear_pixel[1]
                 angle_rad = np.arctan2(dy, dx)
                 angle_deg = np.degrees(angle_rad)
+                
+                #calculate angle between shoulders
+                sdx = left_shoulder[0] - right_shoulder[0]
+                sdy = left_shoulder[1] - right_shoulder[1]
+                shoulder_angle_rad = np.arctan2(sdy, sdx)
+                shoulder_angle_deg = np.degrees(shoulder_angle_rad)
 
-                print(f"Angle between ears: {angle_deg:.2f}°")
+                head_tilt = angle_deg - shoulder_angle_deg
+                print(f"Angle between ears: {head_tilt:.2f}°")
 
                 # Optional: draw points for clarity
                 cv2.circle(image, tuple(left_ear_pixel), 5, (0, 255, 0), -1)
