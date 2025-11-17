@@ -59,10 +59,10 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                                lm[mp_pose.PoseLandmark.RIGHT_EAR.value].y * height])
 
                 LS = np.array([lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
-                               lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y])
+                                lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y])
 
                 RS = np.array([lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
-                               lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y])
+                                lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y])
 
                 # Angle between ears
                 dx, dy = LE[0] - RE[0], LE[1] - RE[1]
@@ -84,10 +84,12 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 cv2.circle(image, tuple(RE.astype(int)), 5, (0, 255, 0), -1)
 
                 # --- REP LOGIC ---
-                if head_tilt > 0:
-                    max_right = max(max_right, head_tilt)
+                # Clamp head tilt to [-45, 45] degrees so max recorded angle cannot exceed 45
+                clamped_tilt = clamp(head_tilt, -45, 45)
+                if clamped_tilt > 0:
+                    max_right = max(max_right, clamped_tilt)
                 else:
-                    max_left = min(max_left, head_tilt)
+                    max_left = min(max_left, clamped_tilt)
 
                 if direction == "neutral":
                     if head_tilt > ANGLE_THRESHOLD:
@@ -124,24 +126,51 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 cv2.putText(image, f"Reps: {rep_count}", (20, 80),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 2)
 
-                # STOP after 5 reps
+                # STOP after MAX_REPS
                 if rep_count >= MAX_REPS:
-                    avg_left = sum(rep_max_left) / len(rep_max_left)
+                    # Use absolute values for left-side averages because left maxs are stored as negative angles
+                    avg_left = sum(abs(x) for x in rep_max_left) / len(rep_max_left)
                     avg_right = sum(rep_max_right) / len(rep_max_right)
 
+                    # --- REPORT ---
+                    # Thresholds (updated):
+                    #  - RED: magnitude < 30
+                    #  - YELLOW: 30 <= magnitude <= 40
+                    #  - GREEN: magnitude > 40
+                    # Max recorded angle is clamped to 45 degrees above.
+                    def categorize(val):
+                        # val is magnitude (positive)
+                        if val < 30:
+                            return "RED"
+                        elif 30 <= val <= 40:
+                            return "YELLOW"
+                        else:
+                            return "GREEN"
+
+                    cat_left = categorize(avg_left)
+                    cat_right = categorize(avg_right)
+
                     print("\n=== SESSION COMPLETE ===")
-                    print(f"Average Left Tilt:  {avg_left:.1f}°")
-                    print(f"Average Right Tilt: {avg_right:.1f}°")
+                    print(f"Average Left Tilt:  {avg_left:.1f}°  -> {cat_left}")
+                    print(f"Average Right Tilt: {avg_right:.1f}°  -> {cat_right}")
                     print("=========================")
 
+                    # Draw report on the image (multiple lines)
                     cv2.putText(image, "SESSION COMPLETE", (20, 140),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-                    cv2.putText(image, f"Avg L: {avg_left:.1f}°", (20, 180),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
-                    cv2.putText(image, f"Avg R: {avg_right:.1f}°", (20, 220),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
+                    cv2.putText(image, f"Avg Left: {avg_left:.1f}°  {cat_left}", (20, 180),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9,
+                                (0, 0, 255) if cat_left == "RED" else (0, 255, 255) if cat_left == "YELLOW" else (0, 255, 0), 2)
+                    cv2.putText(image, f"Avg Right: {avg_right:.1f}°  {cat_right}", (20, 220),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.9,
+                                (0, 0, 255) if cat_right == "RED" else (0, 255, 255) if cat_right == "YELLOW" else (0, 255, 0), 2)
+
+                    # Also show thresholds legend
+                    cv2.putText(image, "Legend: RED <30  YELLOW 30-40  GREEN >40  (max capped at 45)", (20, 260),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
 
                     cv2.imshow("Mediapipe Feed", image)
+                    # Keep the final report visible for 10 seconds
                     cv2.waitKey(10000)
                     break
                 # Show last rep’s max values for a few seconds
