@@ -52,20 +52,24 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 lm = results.pose_landmarks.landmark
                 
                 # Extract landmarks
-                LE = np.array([lm[mp_pose.PoseLandmark.LEFT_MOUTH.value].x * width,
+                LM = np.array([lm[mp_pose.PoseLandmark.LEFT_MOUTH.value].x * width,
                                lm[mp_pose.PoseLandmark.LEFT_MOUTH.value].y * height])
 
-                RE = np.array([lm[mp_pose.PoseLandmark.RIGHT_EAR.value].x * width,
-                               lm[mp_pose.PoseLandmark.RIGHT_EAR.value].y * height])
+                RM = np.array([lm[mp_pose.PoseLandmark.RIGHT_MOUTH.value].x * width,
+                               lm[mp_pose.PoseLandmark.RIGHT_MOUTH.value].y * height])
 
                 LS = np.array([lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
                                 lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y])
 
                 RS = np.array([lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
                                 lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y])
+                
+                NOSE = np.array([lm[mp_pose.PoseLandmark.NOSE.value].x * width,
+                                 lm[mp_pose.PoseLandmark.NOSE.value].y * height])
+                MID_MOUTH = (LM + RM) / 2
 
                 # Angle between ears
-                dx, dy = LE[0] - RE[0], LE[1] - RE[1]
+                dx, dy = NOSE[0] - MID_MOUTH[0], NOSE[1] - MID_MOUTH[1]
                 angle_deg = np.degrees(np.arctan2(dy, dx))
 
                 # Angle between shoulders
@@ -80,8 +84,10 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
                 # Draw ear dots
-                cv2.circle(image, tuple(LE.astype(int)), 5, (0, 255, 0), -1)
-                cv2.circle(image, tuple(RE.astype(int)), 5, (0, 255, 0), -1)
+                cv2.circle(image, tuple(LM.astype(int)), 5, (0, 255, 0), -1)
+                cv2.circle(image, tuple(RM.astype(int)), 5, (0, 255, 0), -1)
+                cv2.circle(image, tuple(MID_MOUTH.astype(int)), 5, (255, 0, 0), -1)
+                cv2.circle(image, tuple(NOSE.astype(int)), 5, (0, 0, 255), -1)
 
                 # --- REP LOGIC ---
                 # Clamp head tilt to [-45, 45] degrees so max recorded angle cannot exceed 45
