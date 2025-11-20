@@ -52,8 +52,8 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 lm = results.pose_landmarks.landmark
                 
                 # Extract landmarks
-                LE = np.array([lm[mp_pose.PoseLandmark.LEFT_EAR.value].x * width,
-                               lm[mp_pose.PoseLandmark.LEFT_EAR.value].y * height])
+                LE = np.array([lm[mp_pose.PoseLandmark.LEFT_MOUTH.value].x * width,
+                               lm[mp_pose.PoseLandmark.LEFT_MOUTH.value].y * height])
 
                 RE = np.array([lm[mp_pose.PoseLandmark.RIGHT_EAR.value].x * width,
                                lm[mp_pose.PoseLandmark.RIGHT_EAR.value].y * height])
