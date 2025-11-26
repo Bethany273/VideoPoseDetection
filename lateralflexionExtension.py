@@ -51,12 +51,12 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
             try:
                 lm = results.pose_landmarks.landmark
                 
-                # Extract landmarks
-                LE = np.array([lm[mp_pose.PoseLandmark.LEFT_EAR.value].x * width,
-                               lm[mp_pose.PoseLandmark.LEFT_EAR.value].y * height])
+                # Extract landmarks (using eyes instead of ears)
+                LE = np.array([lm[mp_pose.PoseLandmark.LEFT_EYE.value].x * width,
+                               lm[mp_pose.PoseLandmark.LEFT_EYE.value].y * height])
 
-                RE = np.array([lm[mp_pose.PoseLandmark.RIGHT_EAR.value].x * width,
-                               lm[mp_pose.PoseLandmark.RIGHT_EAR.value].y * height])
+                RE = np.array([lm[mp_pose.PoseLandmark.RIGHT_EYE.value].x * width,
+                               lm[mp_pose.PoseLandmark.RIGHT_EYE.value].y * height])
 
                 LS = np.array([lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x,
                                 lm[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y])
@@ -64,7 +64,7 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 RS = np.array([lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].x,
                                 lm[mp_pose.PoseLandmark.RIGHT_SHOULDER.value].y])
 
-                # Angle between ears
+                # Angle between eyes
                 dx, dy = LE[0] - RE[0], LE[1] - RE[1]
                 angle_deg = np.degrees(np.arctan2(dy, dx))
 
@@ -79,7 +79,7 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                 cv2.putText(image, f"Tilt: {head_tilt:.1f}°", (20, 40),
                             cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
-                # Draw ear dots
+                # Draw eye dots
                 cv2.circle(image, tuple(LE.astype(int)), 5, (0, 255, 0), -1)
                 cv2.circle(image, tuple(RE.astype(int)), 5, (0, 255, 0), -1)
 
@@ -166,7 +166,7 @@ with mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5) as 
                                 (0, 0, 255) if cat_right == "RED" else (0, 255, 255) if cat_right == "YELLOW" else (0, 255, 0), 2)
 
                     # Also show thresholds legend
-                    cv2.putText(image, "Legend: RED <30  YELLOW 30-40  GREEN >40  (max capped at 45)", (20, 260),
+                    cv2.putText(image, "RED <30  YELLOW 30-40  GREEN >40  (max capped at 45)", (20, 260),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
 
                     cv2.imshow("Mediapipe Feed", image)
