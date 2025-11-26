@@ -7,16 +7,30 @@ import time
 mp_drawing = mp.solutions.drawing_utils
 mp_pose = mp.solutions.pose
 
-def calculate_angle(a, b, c):
-    a = np.array(a)
-    b = np.array(b)
-    c = np.array(c)
-
-    ba = a - b
-    bc = c - b
-
-    cosine_angle = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
-    angle = np.degrees(np.arccos(np.clip(cosine_angle, -1.0, 1.0)))
+def calculate_side_view_angle(shoulder, hip, head):
+    shoulder = np.array(shoulder)
+    hip = np.array(hip)
+    head = np.array(head)
+    
+    # Vector from hip to shoulder (torso vertical)
+    torso_vec = shoulder - hip
+    
+    # Vector from shoulder to head (head direction)
+    head_vec = head - shoulder
+    
+    # Normalize vectors
+    torso_unit = torso_vec / np.linalg.norm(torso_vec)
+    head_unit = head_vec / np.linalg.norm(head_vec)
+    
+    # Dot product and angle in degrees
+    dot = np.dot(torso_unit, head_unit)
+    angle = np.degrees(np.arccos(np.clip(dot, -1.0, 1.0)))
+    
+    # Determine sign by cross product to get positive for flexion (forward tilt)
+    cross = torso_unit[0]*head_unit[1] - torso_unit[1]*head_unit[0]
+    if cross < 0:
+        angle = -angle
+    
     return angle
 
 def categorize_angle(avg_angle):
@@ -42,7 +56,7 @@ show_rep_until = 0  # timestamp for showing rep result on-screen
 cap = cv2.VideoCapture(0)
 
 with mp_pose.Pose(min_detection_confidence=0.5,
-                  min_tracking_confidence=0.5) as pose:
+                min_tracking_confidence=0.5) as pose:
 
     while cap.isOpened():
         ret, frame = cap.read()
@@ -65,8 +79,14 @@ with mp_pose.Pose(min_detection_confidence=0.5,
             hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x,
                     landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
 
-            raw_angle = calculate_angle(ear, shoulder, hip)
-            neck_angle = 180 - raw_angle
+            raw_angle = calculate_side_view_angle(shoulder, hip, ear)
+            
+            # If ear x-coordinate is less than shoulder x-coordinate, use 360 - angle
+            if ear[0] < shoulder[0]:
+                neck_angle = 360 - raw_angle
+            else:
+                neck_angle = raw_angle
+
 
             #----- REP LOGIC -----
             if not in_rep:
@@ -94,6 +114,9 @@ with mp_pose.Pose(min_detection_confidence=0.5,
             cv2.putText(image, f"Reps: {rep_count}/{MAX_REPS}",
                         (40, 110), cv2.FONT_HERSHEY_SIMPLEX, 1,
                         (255, 255, 0), 2)
+            cv2.putText(image, "Turn to your left",
+                        (40, 200), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (255, 255, 0), 2)
 
             # Show last rep's max angle for a few seconds after completion
             if time.time() < show_rep_until:
@@ -109,10 +132,6 @@ with mp_pose.Pose(min_detection_confidence=0.5,
         if rep_count >= MAX_REPS:
             avg_angle = sum(rep_max_angles) / len(rep_max_angles)
             category, color = categorize_angle(avg_angle)
-            
-            print("\n=== SESSION COMPLETE ===")
-            print(f"Average Max Angle: {avg_angle:.1f}° -> {category}")
-            print("===========================")
             
             cv2.putText(image, "SESSION COMPLETE!",
                         (40, 80), cv2.FONT_HERSHEY_SIMPLEX, 1.5,
